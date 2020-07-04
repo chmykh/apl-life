@@ -109,7 +109,7 @@ defer perv
 	al ar both-numbers? IF al ar xt execute EXIT THEN
 	al ar both-iterable? IF al ar xt pairwise EXIT THEN
 	al ar left-iterable? 0= IF ar al xt flip ELSE al ar xt THEN extend ;
-	latestxt is perv
+	is perv
 
 : perv-+   ['] + perv ;
 : perv-and   ['] and perv ;

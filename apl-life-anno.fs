@@ -1,5 +1,5 @@
 #! /usr/bin/gforth
-
+		
 		\ I love FORTH and hope to present reasons with this code.
 
 		\ The original idea was to implement Conway's Game of Life as a one-liner in APL executed in FORTH.
@@ -48,7 +48,12 @@ cr ." Machine word size: " cell .
 		\ The main idea of the implementation provided below is the fact that array's shape is itself an array,
 		\ so any array can be represented as a reference to another array and a reference to raw data. 
 		\ The FORTH word for dereferencing is "@" and for incrementing a pointer by one machine word is "cell+".
-		
+
+		\ Hereafter non-indented and single-idented lines contain the main program, while double-idented lines 
+		\ contain examples and tests explaining what's going on, and these can be omitted. We will write code 
+		\ in tiny steps and test every line just next to it. Sometimes we will first try things in interpreter 
+		\ mode and then wrap a code in a word definition.
+
 : shape   @ ;
 : data   cell+ @ ;
 : first   data @ ;
@@ -69,12 +74,12 @@ cr ." Machine word size: " cell .
 		\ So the line below states the following:
 		\ Create [1]		let the current value of "here" be called [1].
 		\ here			put the value of "here" on the stack.
-		\ ,			write value from the stack to "here"; increment "here".
+		\ ,			write the value from the stack to "here"; increment "here".
 		\ here			put the value of "here" on the stack (now "here" is [1] + 1 machine word).
-		\ cell+			increment value on the stack by 1 machine word.
-		\ ,			write value from the stack to "here"; increment "here".
+		\ cell+			increment the value on the stack by 1 machine word.
+		\ ,			write the value from the stack to "here"; increment "here".
 		\ 1			put 1 on the stack.
-		\ ,			write value from the stack to "here".
+		\ ,			write the value from the stack to "here".
 		\ Thus we have created the [PTR; PTR+2; 1] triplet and assign it a name, [1].
 
 Create [1]  here ,  here cell+ ,  1 ,
@@ -95,7 +100,7 @@ Create [1]  here ,  here cell+ ,  1 ,
 		: size   shape first ;
 
 		\ FORTH allows us to redefine any word, and a new behavior hides an old one. But a words already 
-		\ compiled sill refer to the old implementation. In case we want not to hide but retroactively change 
+		\ compiled still refer to the old implementation. In case we want not to hide but retroactively change 
 		\ the meaning of a word, we have to declare at as "deferred", i.e. linked dynamically.
 
 		\ The definition of deferred "size" looks like this:
@@ -126,7 +131,7 @@ here 0 ,  [1] array  Constant [0]
 		cr [] .					\ pointer to []
 		cr [] shape .				\ pointer to [0]
 		cr [] size .				\ 0
-		\ But it is more convenient to reuse the data pointer of [1], so out (still incomplete) definition 
+		\ But it is more convenient to reuse the data pointer of [1], so our (still incomplete) definition 
 		\ of "size" will work properly:
 here 1 ,  [0] array  Constant []
 		cr [] first .				\ 1
@@ -154,7 +159,7 @@ here 1 ,  [0] array  Constant []
 		cr tmp first .				\ 103
 		cr tmp data cell+ @ .			\ 107
 
-		\ Here is an utility word that allocates a data area for a given number of element:
+		\ Here is an utility word that allocates a data area for a given number of elements:
 : new  { u -- data u }  here  u cells allot  u ;
 
 		\ Examine it like this:
@@ -183,7 +188,7 @@ here 1 ,  [0] array  Constant []
 		: fn   (for) ?DO i ? cell +LOOP ;
 		cr tmp fn				\ 113 127
 
-		\ This is not very readable, and us error-prone since we can easily forget the word "cell" before 
+		\ This is not very readable, and is error-prone since we can easily forget the word "cell" before 
 		\ "+LOOP", which would break the pointer arithmetic. But we can easily enhance the language syntax:
 : FOR   POSTPONE (for) POSTPONE ?DO ; immediate
 : EACH   POSTPONE cell POSTPONE +LOOP ; immediate
@@ -208,7 +213,7 @@ here 1 ,  [0] array  Constant []
 		\ Here is a word to populate an existing array from the stack:
 : !a  ( an .. a1 array -- )  FOR i ! EACH ;
 
-		\ And a word to create an arra yand populate it from the stack:
+		\ And a word to create an array and populate it from the stack:
 : >a  ( an .. a1 u -- a )  new vector { a }  a !a  a ;
 
 		4 3 2 1  4 >a  Constant 1_2_3_4
@@ -251,7 +256,7 @@ here 1 ,  [0] array  Constant []
 		\ paradigm we will implement some of its features here. Namely: currying, runtime function composition,
 		\ and closures.
 
-		\ Currying is implemented by binding together a function and its last arguments.
+		\ Currying is implemented by binding together a function and its last argument.
 
 		\ Here is how such binding looks like if done at compile time:
 		: 10+ 10 + ;
@@ -282,6 +287,10 @@ here 1 ,  [0] array  Constant []
 		\ ;			end of the word
 		\ As you can see with xt-see, this word is decompiled extacly as the previous one.
 
+		\ The word "'" (tick) is one of few so-called parsing words. It takes an input not from the data stack
+		\ but from the input stream. In the code above, the tick consumes the following "+" from the input 
+		\ stream, so instead of execute "+", the interpreter put reference to "+" on the stack.
+
 		\ Values 10 and ' + could be moved out to some variables:
 		10 Value w
 		' + Value xt
@@ -308,6 +317,7 @@ here 1 ,  [0] array  Constant []
 
 		\ In the same way we implement a function composition:
 : compose  { xt2 xt1 -- xt' }  :noname  xt1 compile, xt2 compile,  POSTPONE ; ;
+		\ Test it by composing the increment `1+` with the output '.'.
 		cr ' . ' 1+ compose Constant tmp
 		cr tmp xt-see				\ noname : 1+ . ;
 		cr 211 tmp execute			\ 212
@@ -316,10 +326,10 @@ here 1 ,  [0] array  Constant []
 		\ by composing it with the word "swap", and then bind the last argument as before:
 : flip  ( xt -- xt' )  ['] swap compose ;
 		\ Let's check it with the assymetrical two-argument function "divide":
-		\ Division by 10:
+		\ Divide by 10:
 		10 ' / curry Constant /10
 		cr 30 /10 execute .			\ 3
-		\ Division 10 by:
+		\ Divide 10 by:
 		10 ' / flip curry Constant 10/
 		cr 5 10/ execute .			\ 2
 
@@ -335,6 +345,8 @@ here 1 ,  [0] array  Constant []
 		\ "bind-addr" binds function to a provided memory cell.
 		\ "bind" allocates a memory cell and writes an initial value here, then bounds.
 
+		\ In the example below, we create a cell with a value "223" in it, then bind a function "1+" to it.
+		\ The new function, referenced by "xt", will increment the value in the cell every time it is called.
 		Create tmp 223 ,
 		tmp ' 1+ bind-addr  Constant xt
 		cr tmp ?				\ 223
@@ -371,7 +383,7 @@ here 1 ,  [0] array  Constant []
 		\ A simple iterator is a pointer that increases its value every time it is read.
 
 		\ The reading word is "@", the writing is "!", and the pointer increment is "cell+". Here we define 
-		\ the words for "read and increment pointer" and "write and increment pointer":
+		\ words for "read and increment pointer" and "write and increment pointer":
 : !+  { n addr -- addr' }  n addr !  addr cell+ ;
 : @+  { addr -- n addr' }  addr @  addr cell+ ;
 		\ (By the way, it can be written much simpler without locals, but stack manipulation words make code 
@@ -379,15 +391,18 @@ here 1 ,  [0] array  Constant []
 		: !+  tuck ! cell+ ;
 		: @+  dup @ swap cell+ ;
 
-		\ Try it:
+		\ Try it with the following code. Here we allocate two memory cells with values 101 and 103 and create 
+		\ a pointer "tmp" to the first. After the call to "107 tmp !+" the value 107 is written over the 101, 
+		\ and the incremented value of the pointer is left on the stack. After the next call, "109 swap !+",
+		\ the value 109 is written over the 103.
 		Create tmp 101 , 103 ,
 		cr tmp ?  tmp cell+ ?			\ 101 103
 		cr tmp .				\ some ptr
 		107 tmp !+
 		cr dup .				\ ptr to next cell
-		107 swap !+
+		109 swap !+
 		cr .					\ ptr to yet next cell
-		cr tmp ?  tmp cell+ ?			\ 107 107
+		cr tmp ?  tmp cell+ ?			\ 107 109
 
 		\ The iterator is made of "!+" or "@+" bound with a pointer, and the initial pointer value is the data
 		\ pointer of the target array:
@@ -514,7 +529,7 @@ here 1 ,  [0] array  Constant []
 : shape  { a -- a' }   a array? IF a shape  ELSE [] THEN ;
 
 		\ According to APL rules, we can wrap any array into a scalar, but a number wrapped in a scalar is
-		\ equal to the same scalar.
+		\ equal to the number itself.
 : wrap  { a -- a' }    a array? IF a scalar ELSE a  THEN ;
 : unwrap  { a -- a' }  a array? IF a first  ELSE a  THEN ;
 
@@ -560,12 +575,12 @@ here 1 ,  [0] array  Constant []
 		\ don't have to create a new array representing this "extended" scalar but will curry the function 
 		\ with the scalar and then "map" over the array.
 
-		\ The implementation going to take more than one word and contain mutual recursion, so "defer":
+		\ The implementation going to take more than one word and contain a mutual recursion, so "defer":
 defer perv
 
 		\ If both arguments are numbers,
 : both-numbers?  { al ar -- f }  al number? ar number? and ;
-		\ then simply "execute", and this is our first runnable attempt:
+		\ then simply "execute", and this is our first runnable version of "perv":
 		:noname  { al ar xt -- a' }
 			al ar both-numbers? IF al ar xt execute EXIT THEN
 			s" not implemented yet" exception throw ;
@@ -607,7 +622,7 @@ defer perv
 	al ar both-numbers? IF al ar xt execute EXIT THEN
 	al ar both-iterable? IF al ar xt pairwise EXIT THEN
 	al ar left-iterable? 0= IF ar al xt flip ELSE al ar xt THEN extend ;
-	latestxt is perv
+	is perv
 
 		\ Examine its behavior:
 		cr 1 2 ' + perv print			\ 3
