@@ -17,7 +17,36 @@ For these who had never met FORTH before, "word" in FORTH stays for function and
 		
 A coding style is affected by an intention to avoid stack manipulation words. Locals are mostly used instead. Hope this might improve readability for people unfamiliar with FORTH.
 
-This code is written in gforth and contains Unicode symbols.
+This code is written with gforth 0.7.2 and contains Unicode symbols.
+
+Files
+* `README.md` this file, contains the code and explanations
+* `apl-life-annotated.fs` the annotated source code, the same contents as this README
+* `apl-life.fs` the source code without tests and examples
+* `LICENSE.txt` the license
+
+Output of `apl-life.fs` on my machine is:
+```
+Available free space on the dictionary: 8031610 
+Machine word size: 8 
+Memory used by code: 2216 words
+The glider:
+0 0 0 0 0 0 
+0 0 0 0 0 0 
+0 0 1 1 1 0 
+0 0 1 0 0 0 
+0 0 0 1 0 0 
+0 0 0 0 0 0 
+The glider after 4 steps:
+0 0 0 0 0 0 
+0 1 1 1 0 0 
+0 1 0 0 0 0 
+0 0 1 0 0 0 
+0 0 0 0 0 0 
+0 0 0 0 0 0 
+Free space on dictionary after a run: 7226226 
+Free space on dictionary after gc: 8013882 
+```
 
 References
 * Conway's Game of Life https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
@@ -27,6 +56,7 @@ References
 * online APL playground https://tryapl.org/
 * FORTH programming language https://en.wikipedia.org/wiki/Forth_(programming_language)
 * gforth docs https://www.complang.tuwien.ac.at/forth/gforth/Docs-html/
+
 ## Arrays
 
 First we have to implement arrays. APL arrays are multi-dimensional and support nesting which is an unrelated concept (a scalar is a 0-dimensional array, a vector is 1-dimensional, and matrix is 2-dimensional, and a vector of vectors is not a matrix).
@@ -777,7 +807,7 @@ The translator work is two-phase. First, it tokenizes the input string: words ar
 
 We will represent most tokens with a pair {token value, token class}. The token value is a function implementing the operation and token class is a function that compiles the operation into a FORTH code. E.g.,
 ```
-: ⍵   ['] @local0 ['] compile, ; 
+: ⍵   ['] @local0 ['] compile, ;
 ```
 So the omega (stays for a right operand in APL) is a token, its value is `@local0` (the FORTH word to access an argument of a word with single local), and its class is "compile,". Being executed, the class will compile token value into the current definition:
 ```
